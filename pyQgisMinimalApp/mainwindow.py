@@ -11,10 +11,6 @@ from qgis.core import (
   QgsPoint)
 from ui_mainwindow import Ui_MainWindow
 
-
-# Path to local QGIS install
-QGIS_PREFIX = '/usr/local/qgis-master'
-
 DATA = [
     (15, 15, 0.3),
     (15, 20, 0.4),
