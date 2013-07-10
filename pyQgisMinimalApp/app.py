@@ -6,8 +6,8 @@ from qgis.core import QgsApplication
 from mainwindow import MainWindow
 
 # Path to local QGIS install
-QGIS_PREFIX = os.environ['QGIS_PREFIX']
-#QGIS_PREFIX='/usr/local/qgis-master'
+QGIS_PREFIX_PATH = os.environ['QGIS_PREFIX_PATH']
+#QGIS_PREFIX_PATH='/usr/local/qgis-master'
 
 
 # Main entry to program.  Set up the main app and create a new window.
@@ -19,7 +19,7 @@ def main(argv):
     # Set the app style
 
     # initialize qgis libraries
-    QgsApplication.setPrefixPath(QGIS_PREFIX, True)
+    QgsApplication.setPrefixPath(QGIS_PREFIX_PATH, True)
     QgsApplication.initQgis()
 
     # create main window
