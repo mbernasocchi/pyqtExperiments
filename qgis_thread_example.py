@@ -14,9 +14,10 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
     
-    this was inspired by 
+    this was inspired by:
     http://snorf.net/blog/2013/12/07/multithreading-in-qgis-python-plugins/
     http://eli.thegreenplace.net/2011/04/25/passing-extra-arguments-to-pyqt-slot
+    http://gis.stackexchange.com/questions/64831/how-do-i-prevent-qgis-from-being-detected-as-not-responding-when-running-a-hea/64928#64928
 """
 
 
@@ -120,7 +121,8 @@ def start_worker(worker, iface, message):
     iface.messageBar().pushWidget(message_bar, iface.messageBar().INFO)
 
     # start the worker in a new thread
-    thread = QThread()
+    # let Qt take ownership of the QThread
+    thread = QThread(iface.mainWindow())
     worker.moveToThread(thread)
     worker.finished.connect(lambda result: worker_finished(
         result, thread, worker, iface, message_bar))
