@@ -53,6 +53,9 @@ class ExampleWorker(AbstractWorker):
     def __init__(self, steps):
         AbstractWorker.__init__(self)
         self.steps = steps
+        # if a worker cannot define the length of the work it can set an 
+        # undefined progress by using
+        # self.toggle_show_progress.emit(False)
 
     def work(self):
         if randint(0, 100) > 70:
@@ -80,6 +83,7 @@ class AbstractWorker(QtCore.QObject):
     finished = QtCore.pyqtSignal(object)
     error = QtCore.pyqtSignal(Exception, basestring)
     progress = QtCore.pyqtSignal(float)
+    toggle_show_progress = QtCore.pyqtSignal(bool)
 
     def __init__(self):
         QtCore.QObject.__init__(self)
@@ -108,11 +112,14 @@ class AbstractWorker(QtCore.QObject):
         self.killed = True
 
 
-def start_worker(worker, iface, message):
+def start_worker(worker, iface, message, with_progress=True):
     # configure the QgsMessageBar
     message_bar = iface.messageBar().createMessage(message)
     progress_bar = QProgressBar()
     progress_bar.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+    if not with_progress:
+        progress_bar.setMinimum(0)
+        progress_bar.setMaximum(0)
     cancel_button = QPushButton()
     cancel_button.setText('Cancel')
     cancel_button.clicked.connect(worker.kill)
@@ -124,6 +131,8 @@ def start_worker(worker, iface, message):
     # let Qt take ownership of the QThread
     thread = QThread(iface.mainWindow())
     worker.moveToThread(thread)
+    worker.toggle_show_progress.connect(lambda show: toggle_worker_progress(
+        show, progress_bar))
     worker.finished.connect(lambda result: worker_finished(
         result, thread, worker, iface, message_bar))
     worker.error.connect(lambda e, exception_str: worker_error(
@@ -157,4 +166,13 @@ def worker_error(e, exception_string, iface):
         'Worker thread raised an exception: %s' % exception_string,
         'SVIR worker',
         level=QgsMessageLog.CRITICAL)
+
+
+def toggle_worker_progress(show_progress, progress_bar):
+    progress_bar.setMinimum(0)
+    if show_progress:
+        progress_bar.setMaximum(100)
+    else:
+        # show an undefined progress
+        progress_bar.setMaximum(0)
 
