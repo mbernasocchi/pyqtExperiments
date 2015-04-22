@@ -84,6 +84,10 @@ class AbstractWorker(QtCore.QObject):
     error = QtCore.pyqtSignal(Exception, basestring)
     progress = QtCore.pyqtSignal(float)
     toggle_show_progress = QtCore.pyqtSignal(bool)
+    
+    # private signal, don't use in concrete workers this is automatically
+    # emitted if the result is not None
+    successfully_finished = QtCore.pyqtSignal(object)
 
     def __init__(self):
         QtCore.QObject.__init__(self)
@@ -144,16 +148,18 @@ def start_worker(worker, iface, message, with_progress=True):
 
 
 def worker_finished(result, thread, worker, iface, message_bar):
-        # clean up the worker and thread
-        worker.deleteLater()
-        thread.quit()
-        thread.wait()
-        thread.deleteLater()
         # remove widget from message bar
         iface.messageBar().popWidget(message_bar)
         if result is not None:
             # report the result
             iface.messageBar().pushMessage('The result is: %s.' % result)
+            worker.successfully_finished.emit(result)
+            
+        # clean up the worker and thread
+        worker.deleteLater()
+        thread.quit()
+        thread.wait()
+        thread.deleteLater()        
 
 
 def worker_error(e, exception_string, iface):
