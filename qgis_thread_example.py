@@ -34,44 +34,20 @@ from qgis.core import QgsMessageLog
 from qgis.gui import QgsMessageBar
 
 
-class AbstractWorker(QtCore.QObject):
-    """Example worker for thread"""
-
-    # available signals
-    finished = QtCore.pyqtSignal(object)
-    error = QtCore.pyqtSignal(Exception, basestring)
-    progress = QtCore.pyqtSignal(float)
-
-    def __init__(self):
-        QtCore.QObject.__init__(self)
-        self.killed = False
-
-    def run(self):
-        result = None
-        try:
-            result = self.work()
-        except Exception, e:
-            # forward the exception upstream
-            self.error.emit(e, traceback.format_exc())
-        self.finished.emit(result)
-
-    def work(self):
-        """ Reimplement this putting your calculation here
-            available are:
-                self.progress.emit(0-100)
-                self.killed
-            :returns a python object - Don't use None
-                    as it is used to signal user abortion
-        """
-
-        raise NotImplementedError
-
-    def kill(self):
-        self.killed = True
+###########################################################################
+# This is what you need to call when you want to start a work in a thread #
+###########################################################################
+def run_example_worker():
+    # create a new worker instance that does 7 steps
+    worker = ExampleWorker(7)
+    start_worker(worker, self.iface, 'testing the worker')
 
 
+###########################################################################
+# This could be in a separate file example_worker.py                      #
+###########################################################################
 class ExampleWorker(AbstractWorker):
-    """Example worker for thread"""
+    """worker, implement the work method here and raise exceptions if needed"""
 
     def __init__(self, steps):
         AbstractWorker.__init__(self)
@@ -91,6 +67,44 @@ class ExampleWorker(AbstractWorker):
             self.progress.emit(i * 100/self.steps)
 
         return True
+
+
+###########################################################################
+# This could be in a separate file abstract_worker.py                     #
+###########################################################################
+class AbstractWorker(QtCore.QObject):
+    """Abstract worker, ihnerit from this and implement the work method"""
+
+    # available signals
+    finished = QtCore.pyqtSignal(object)
+    error = QtCore.pyqtSignal(Exception, basestring)
+    progress = QtCore.pyqtSignal(float)
+
+    def __init__(self):
+        QtCore.QObject.__init__(self)
+        self.killed = False
+
+    def run(self):
+        try:
+            result = self.work()
+            self.finished.emit(result)
+        except Exception, e:
+            # forward the exception upstream
+            self.error.emit(e, traceback.format_exc())
+            self.finished.emit(None)
+
+    def work(self):
+        """ Reimplement this putting your calculation here
+            available are:
+                self.progress.emit(0-100)
+                self.killed
+            :returns a python object - use None if killed is true
+        """
+
+        raise NotImplementedError
+
+    def kill(self):
+        self.killed = True
 
 
 def start_worker(worker, iface, message):
@@ -115,7 +129,7 @@ def start_worker(worker, iface, message):
     worker.progress.connect(progress_bar.setValue)
     thread.started.connect(worker.run)
     thread.start()
-    return thread, worker, message_bar
+    return thread, message_bar
 
 
 def worker_finished(result, thread, worker, iface, message_bar):
@@ -142,11 +156,3 @@ def worker_error(e, exception_string, iface):
         'SVIR worker',
         level=QgsMessageLog.CRITICAL)
 
-
-###########################################################################
-# This is what you need to call when you want to start a work in a thread #
-###########################################################################
-def run_example_worker():
-    # create a new worker instance that does 7 steps
-    worker = ExampleWorker(7)
-    start_worker(worker, self.iface, 'testing the worker')
