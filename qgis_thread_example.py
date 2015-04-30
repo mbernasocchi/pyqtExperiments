@@ -64,6 +64,7 @@ class ExampleWorker(AbstractWorker):
 
         for i in range(1, self.steps+1):
             if self.killed:
+                self.cleanup()
                 return None
 
             # wait one second
@@ -71,6 +72,9 @@ class ExampleWorker(AbstractWorker):
             self.progress.emit(i * 100/self.steps)
 
         return True
+        
+    def cleanup(self):
+        print "cleanup here"
 
 
 ###########################################################################
