@@ -61,7 +61,16 @@ class ExampleWorker(AbstractWorker):
         if randint(0, 100) > 70:
             raise RuntimeError('This is a random mistake during the '
                                'calculation')
-
+        
+        self.toggle_show_progress.emit(False)   
+        self.set_message.emit(
+            'NOT showing the progress because we dont know the length')
+        sleep(randint(0, 10))  
+         
+        
+        self.toggle_show_progress.emit(True)        
+        self.set_message.emit(
+            'Doing long running job while showing the progress')
         for i in range(1, self.steps+1):
             if self.killed:
                 self.cleanup()
@@ -88,6 +97,7 @@ class AbstractWorker(QtCore.QObject):
     error = QtCore.pyqtSignal(Exception, basestring)
     progress = QtCore.pyqtSignal(float)
     toggle_show_progress = QtCore.pyqtSignal(bool)
+    set_message = QtCore.pyqtSignal(str)
     
     # private signal, don't use in concrete workers this is automatically
     # emitted if the result is not None
@@ -117,7 +127,9 @@ class AbstractWorker(QtCore.QObject):
         raise NotImplementedError
 
     def kill(self):
-        self.killed = True
+        self.is_killed = True
+        self.set_message.emit('Aborting...')
+        self.toggle_show_progress.emit(False)
 
 
 def start_worker(worker, iface, message, with_progress=True):
@@ -139,6 +151,10 @@ def start_worker(worker, iface, message, with_progress=True):
     # let Qt take ownership of the QThread
     thread = QThread(iface.mainWindow())
     worker.moveToThread(thread)
+    
+    worker.set_message.connect(lambda message: set_worker_message(
+        message, message_bar_item))
+
     worker.toggle_show_progress.connect(lambda show: toggle_worker_progress(
         show, progress_bar))
     worker.finished.connect(lambda result: worker_finished(
@@ -164,7 +180,7 @@ def worker_finished(result, thread, worker, iface, message_bar):
         thread.quit()
         thread.wait()
         thread.deleteLater()        
-
+        
 
 def worker_error(e, exception_string, iface):
     # notify the user that something went wrong
@@ -176,6 +192,10 @@ def worker_error(e, exception_string, iface):
         'Worker thread raised an exception: %s' % exception_string,
         'SVIR worker',
         level=QgsMessageLog.CRITICAL)
+
+
+def set_worker_message(message, message_bar_item):
+    message_bar_item.setText(message)
 
 
 def toggle_worker_progress(show_progress, progress_bar):
