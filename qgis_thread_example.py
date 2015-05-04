@@ -74,7 +74,7 @@ class ExampleWorker(AbstractWorker):
         for i in range(1, self.steps+1):
             if self.killed:
                 self.cleanup()
-                return None
+                raise UserAbortedNotification('USER Killed')
 
             # wait one second
             time.sleep(1)
@@ -111,6 +111,8 @@ class AbstractWorker(QtCore.QObject):
         try:
             result = self.work()
             self.finished.emit(result)
+        except UserAbortedNotification:
+            self.finished.emit(None)
         except Exception, e:
             # forward the exception upstream
             self.error.emit(e, traceback.format_exc())
@@ -130,6 +132,10 @@ class AbstractWorker(QtCore.QObject):
         self.is_killed = True
         self.set_message.emit('Aborting...')
         self.toggle_show_progress.emit(False)
+
+
+class UserAbortedNotification(Exception):
+    pass
 
 
 def start_worker(worker, iface, message, with_progress=True):
