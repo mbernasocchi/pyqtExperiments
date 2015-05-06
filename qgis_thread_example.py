@@ -62,12 +62,13 @@ class ExampleWorker(AbstractWorker):
             raise RuntimeError('This is a random mistake during the '
                                'calculation')
         
-        self.toggle_show_progress.emit(False)   
+        self.toggle_show_progress.emit(False)
+        self.toggle_show_cancel.emit(False)
         self.set_message.emit(
             'NOT showing the progress because we dont know the length')
         sleep(randint(0, 10))  
          
-        
+        self.toggle_show_cancel.emit(True)
         self.toggle_show_progress.emit(True)        
         self.set_message.emit(
             'Doing long running job while showing the progress')
@@ -92,12 +93,13 @@ class ExampleWorker(AbstractWorker):
 class AbstractWorker(QtCore.QObject):
     """Abstract worker, ihnerit from this and implement the work method"""
 
-    # available signals
+    # available signals to be used in the concrete worker
     finished = QtCore.pyqtSignal(object)
     error = QtCore.pyqtSignal(Exception, basestring)
     progress = QtCore.pyqtSignal(float)
     toggle_show_progress = QtCore.pyqtSignal(bool)
     set_message = QtCore.pyqtSignal(str)
+    toggle_show_cancel = QtCore.pyqtSignal(bool)
     
     # private signal, don't use in concrete workers this is automatically
     # emitted if the result is not None
@@ -163,12 +165,20 @@ def start_worker(worker, iface, message, with_progress=True):
 
     worker.toggle_show_progress.connect(lambda show: toggle_worker_progress(
         show, progress_bar))
+        
+    worker.toggle_show_cancel.connect(lambda show: toggle_worker_cancel(
+        show, cancel_button))
+        
     worker.finished.connect(lambda result: worker_finished(
         result, thread, worker, iface, message_bar))
+        
     worker.error.connect(lambda e, exception_str: worker_error(
         e, exception_str, iface))
+        
     worker.progress.connect(progress_bar.setValue)
+    
     thread.started.connect(worker.run)
+    
     thread.start()
     return thread, message_bar
 
@@ -211,4 +221,8 @@ def toggle_worker_progress(show_progress, progress_bar):
     else:
         # show an undefined progress
         progress_bar.setMaximum(0)
+
+        
+def toggle_worker_cancel(show_cancel, cancel_button):
+    cancel_button.setVisible(show_cancel)
 
