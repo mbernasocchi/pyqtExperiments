@@ -82,6 +82,13 @@ class ListMultiSelectWidget(QtGui.QGroupBox):
         :param items list of strings to be set as the unselected list
         """
         self._set_items(self.unselected_widget, items)
+        
+     def clear(self):
+        """
+        removes all items from selected and unselected
+        """
+        self.set_selected_items([])
+        self.set_unselected_items([])
 
     def _get_items(self, widget):
         for i in range(widget.count()):
