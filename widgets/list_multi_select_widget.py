@@ -83,7 +83,7 @@ class ListMultiSelectWidget(QtGui.QGroupBox):
         """
         self._set_items(self.unselected_widget, items)
         
-     def clear(self):
+    def clear(self):
         """
         removes all items from selected and unselected
         """
